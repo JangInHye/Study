@@ -2,6 +2,7 @@
 #include "Board.h"
 #include "ConsoleHelper.h"
 #include "Player.h"
+#include "DisjointSet.h"
 
 const char* TILE = "■";
 
@@ -55,6 +56,56 @@ void Board::GenerateMap()
 		}
 	}
 
+	// 크루스칼 알고리즘을 이용해서 맵을 생성한다.
+	// cost 랜덤
+	vector<CostEdge> edges;
+
+	// edges 후보를 랜덤 cost로 등록한다.
+	for (int32 y = 0; y < _size; y++)
+	{
+		for (int32 x = 0; x < _size; x++)
+		{
+			if (x % 2 == 0 || y % 2 == 0)
+				continue;
+
+			// 우측 연결하는 간선 후보
+			if (x < _size - 2)
+			{
+				const int32 randValue = ::rand() % 100;
+				edges.push_back(CostEdge{ randValue, Pos{ y, x }, Pos{ y, x + 2 } });
+			}
+
+			// 아래로 연결하는 간선 후보
+			if (y < _size - 2)
+			{
+				const int32 randValue = ::rand() % 100;
+				edges.push_back(CostEdge{ randValue, Pos{ y, x }, Pos{ y + 2, x } });
+			}
+		}
+	}
+
+	std::sort(edges.begin(), edges.end());
+
+	DisjointSet sets(_size * _size);
+
+	for (CostEdge& edge : edges)
+	{
+		int u = edge.u.y * _size + edge.u.x;
+		int v = edge.v.y * _size + edge.v.x;
+		// 같은 그룹이면 스킵
+		if (sets.Find(u) == sets.Find(v))
+			continue;
+
+		// 두 그룹을 합친다.
+		sets.Merge(u, v);
+
+		// 맵에 적용
+		int y = (edge.u.y + edge.v.y) / 2;
+		int x = (edge.u.x + edge.v.x) / 2;
+		_tile[y][x] = TileType::EMPTY;
+	}
+
+	/*
 	// 랜덤으로 우측 혹은 아래로 길을 뚫는 작업
 	for (int32 y = 0; y < _size; y++)
 	{
@@ -65,7 +116,7 @@ void Board::GenerateMap()
 			if (y == _size - 2 && x == _size - 2)
 				continue;
 
-			if (y == _size - 2) 
+			if (y == _size - 2)
 			{
 				_tile[y][x + 1] = TileType::EMPTY;
 				continue;
@@ -87,7 +138,7 @@ void Board::GenerateMap()
 				_tile[y + 1][x] = TileType::EMPTY;
 			}
 		}
-	}
+	}*/
 }
 
 TileType Board::GetTileType(Pos pos)
